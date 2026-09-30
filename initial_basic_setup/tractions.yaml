@@ -1,9 +1,9 @@
 !Switch
-[Tnuc_n]: !ConstantMap
+[T_n]: !ConstantMap
   map:
-     Tnuc_n: 0
+     T_n:        -20e6
 
-[Tnuc_s, Tnuc_d]: !EvalModel
+[T_s, T_d]: !EvalModel
     parameters: [x, y, z, fault_tag]
     model: !Switch
         [x, y, z]: !AffineMap
@@ -36,47 +36,34 @@
                   map:
                     fault_tag: 66
     components: !LuaMap
-      returns: [Tnuc_s, Tnuc_d]
+      returns: [T_s, T_d]
       function: |
         function f (x)
-          -- Nucleation parameters
-          -- xha = { -11800.0, 40340.0, -11900.0}
-          xha = { -18230,20e3,-8300.0}
-        
-          r_c = 3000.0
-          nucleation_inc_max = 4.2e6
-          r = math.sqrt((x["x"]-xha[1])^2 + (x["y"]-xha[2])^2 + (x["z"]-xha[3])^2 )
+          baseline_shear_stress = 8e6
+
+          -- Shear stress depth profile parameters
+          z0 = 15000.0        -- Seismogenic transition depth (m)
+          H = 3000.0          -- Decay length scale (m)
           
-          if (r < r_c) then
-            ratio = (r / r_c)^4
-            nucleation_inc = nucleation_inc_max * math.exp(ratio / (ratio - 1.0))
-          else
-            nucleation_inc = 0
+          z_abs = math.abs(x["z"])
+          shear_stress = baseline_shear_stress
+
+          -- Apply exponential decay below seismogenic depth
+          if (z_abs > z0) then
+            shear_stress = baseline_shear_stress * math.exp(-(z_abs - z0) / H)
           end
 
           if (x.fault_tag == 3) then
-             Tnuc_s = nucleation_inc
-             Tnuc_d = 0
+             T_s = shear_stress
+             T_d = 0
           else
-             Tnuc_d = nucleation_inc
-             Tnuc_s = 0
+             T_d = shear_stress
+             T_s = 0
           end
 
-
           return {
-            Tnuc_s = Tnuc_s,
-            Tnuc_d = Tnuc_d,
+            T_s = T_s,
+            T_d = T_d
           }
         end
 
-
-#[s_xx, s_yy, s_zz, s_xy, s_yz, s_xz]: !Include  stress_tensor.yaml
-[T_s, T_d, T_n]: !Include  tractions.yaml
-
-[mu_s, mu_d, d_c, cohesion, forced_rupture_time]: !ConstantMap
-  map:
-     mu_s:        0.6
-     mu_d:        0.2
-     d_c:         0.4
-     cohesion:    0.0
-     forced_rupture_time: 1e10

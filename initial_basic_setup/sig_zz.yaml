@@ -1,0 +1,6 @@
+!ConstantMap
+  map:
+     # sig_zz is kept relatively small, 
+     # because we want sigma_n ~ 20 MPa as in the traction setup
+     # and both horizontal principal stress contribute to sigma_n
+     sig_zz: -9e6

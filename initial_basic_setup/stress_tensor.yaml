@@ -1,0 +1,56 @@
+!EvalModel
+parameters: [Omega, b_xx, b_yy, b_zz, b_xy, b_yz, b_xz, sig_zz]
+model: !Switch
+  [sig_zz]: !Include sig_zz.yaml
+  [Omega]: !LuaMap
+        returns: [Omega]
+        function: |
+            function f(x)
+              z0 = 15000.0        -- Seismogenic transition depth (m)
+              H = 3000.0          -- Decay length scale (m)             
+              z_abs = math.abs(x["z"])
+
+              Omega = 1.0
+              -- Apply exponential decay below seismogenic depth
+              if (z_abs > z0) then
+                Omega = math.max(0.001, math.exp(-(z_abs - z0) / H))
+              end
+
+                return {
+                    Omega = Omega
+                }
+            end
+  [b_xx, b_yy, b_zz, b_xy, b_yz, b_xz]: !EvalModel
+    parameters: [S, sig_zz]
+    model: !Switch
+      [sig_zz]: !Include sig_zz.yaml
+      [S]: !LuaMap
+        returns: [S]
+        function: |
+            function f(x)
+                R0 = 0.85
+                return {
+                    S = (1.0 / R0 - 1.0),
+                }
+            end
+    components: !AndersonianStress
+      constants:
+        mu_d:      0.2
+        mu_s:      0.6
+        cohesion:  0.0
+        s2ratio:   0.0
+        S_v: 2
+        SH_max: 70.0
+components: !LuaMap
+  returns: [s_xx, s_yy, s_zz, s_xy, s_yz, s_xz]
+  function: |
+    function f(x)
+        return {
+            s_xx = x["Omega"] * x["b_xx"] + (1.0 - x["Omega"]) * x["sig_zz"],
+            s_yy = x["Omega"] * x["b_yy"] + (1.0 - x["Omega"]) * x["sig_zz"],
+            s_zz = x["Omega"] * x["b_zz"] + (1.0 - x["Omega"]) * x["sig_zz"],
+            s_xy = x["Omega"] * x["b_xy"],
+            s_yz = x["Omega"] * x["b_yz"],
+            s_xz = x["Omega"] * x["b_xz"]
+        }
+    end
