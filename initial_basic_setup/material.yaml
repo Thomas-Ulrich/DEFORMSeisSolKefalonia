@@ -1,0 +1,6 @@
+!Switch
+[rho, mu, lambda]: !ConstantMap
+  map:
+    rho:                 2700
+    mu:           2.9403e+010
+    lambda:        2.941e+010

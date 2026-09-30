@@ -1,0 +1,51 @@
+!Switch
+[T_d, T_n, Tnuc_n, Tnuc_d]: !ConstantMap
+  map:
+     T_d:        0.0
+     T_n:        -20e6
+     Tnuc_n: 0
+     Tnuc_d: 0
+
+[Tnuc_s, T_s]: !LuaMap
+  returns: [Tnuc_s, T_s]
+  function: |
+    function f (x)
+      -- Nucleation parameters
+      xha = { -11800.0, 40340.0, -11900.0}
+      r_c = 3000.0
+      r = math.sqrt((x["x"]-xha[1])^2 + (x["y"]-xha[2])^2 + (x["z"]-xha[3])^2 )
+      
+      if (r <= r_c) then
+        Tnuc_s = 42e6 * math.exp(r^2 / (r^2 - r_c^2))
+      else
+        Tnuc_s = 0
+      end
+
+      -- Shear stress depth profile parameters
+      z0 = 15000.0        -- Seismogenic transition depth (m)
+      H = 3000.0          -- Decay length scale (m)
+      Ts_baseline = 8e6   -- Base background shear stress (Pa)
+      
+      z_abs = math.abs(x["z"])
+      T_s = Ts_baseline
+
+      -- Apply exponential decay below seismogenic depth
+      if (z_abs > z0) then
+        T_s = Ts_baseline * math.exp(-(z_abs - z0) / H)
+      end
+
+      return {
+        Tnuc_s = Tnuc_s,
+        T_s = T_s
+      }
+    end
+
+
+
+[mu_s, mu_d, d_c, cohesion, forced_rupture_time]: !ConstantMap
+  map:
+     mu_s:        0.6
+     mu_d:        0.2
+     d_c:         0.4
+     cohesion:    0.0
+     forced_rupture_time: 1e10
