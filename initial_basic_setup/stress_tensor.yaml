@@ -2,24 +2,7 @@
 parameters: [Omega, b_xx, b_yy, b_zz, b_xy, b_yz, b_xz, sig_zz]
 model: !Switch
   [sig_zz]: !Include sig_zz.yaml
-  [Omega]: !LuaMap
-        returns: [Omega]
-        function: |
-            function f(x)
-              z0 = 15000.0        -- Seismogenic transition depth (m)
-              H = 3000.0          -- Decay length scale (m)             
-              z_abs = math.abs(x["z"])
-
-              Omega = 1.0
-              -- Apply exponential decay below seismogenic depth
-              if (z_abs > z0) then
-                Omega = math.max(0.001, math.exp(-(z_abs - z0) / H))
-              end
-
-                return {
-                    Omega = Omega
-                }
-            end
+  [Omega]: !Include omega.yaml
   [b_xx, b_yy, b_zz, b_xy, b_yz, b_xz]: !EvalModel
     parameters: [S, sig_zz]
     model: !Switch
