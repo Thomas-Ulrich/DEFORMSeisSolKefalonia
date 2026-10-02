@@ -1,0 +1,20 @@
+!LuaMap
+# Omega is a function use to tapper smoothly deviatoric stresses 
+# or tractions below the seimogenic depth
+returns: [Omega]
+function: |
+    function f(x)
+      z0 = 15000.0        -- Seismogenic transition depth (m)
+      H = 3000.0          -- Decay length scale (m)             
+      z_abs = math.abs(x["z"])
+
+      Omega = 1.0
+      -- Apply exponential decay below seismogenic depth
+      if (z_abs > z0) then
+        Omega = math.max(0.001, math.exp(-(z_abs - z0) / H))
+      end
+
+        return {
+            Omega = Omega
+        }
+    end
